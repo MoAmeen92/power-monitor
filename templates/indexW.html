@@ -1,0 +1,239 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Power Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+    <!-- Chart.js CDN (Latest Version) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Chart.js Time Adapter via CDN (Compatible Version) -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- Chart.js Data Labels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    
+    <!-- Socket.IO CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Real-Time Power Monitoring</h1>
+    
+    <!-- Safety Check Section -->
+    <div id="safety-check-container">
+        <!-- Safety Step 1: Initiation -->
+        <div id="safety-step-1" class="safety-step">
+            <h2>Safety Check Initiation</h2>
+            <p>Welcome to the Real-Time Power Monitoring System. Please complete the following safety checks before proceeding.</p>
+            <button onclick="startSafetyChecks()">Start Safety Checks</button>
+        </div>
+
+        <!-- Safety Steps 2-6 -->
+        <div id="safety-steps" style="display: none;">
+            <div id="safety-step-2" class="safety-step">
+                <h2>Safety Check 1</h2>
+                <p>Is the current sensor connected in the correct orientation?</p>
+                <button onclick="handleSafetyResponse(2, true)">Yes</button>
+                <button onclick="handleSafetyResponse(2, false)">No</button>
+            </div>
+
+            <div id="safety-step-3" class="safety-step" style="display: none;">
+                <h2>Safety Check 2</h2>
+                <p>Is the voltage transformer securely connected to port V1?</p>
+                <button onclick="handleSafetyResponse(3, true)">Yes</button>
+                <button onclick="handleSafetyResponse(3, false)">No</button>
+            </div>
+
+            <div id="safety-step-4" class="safety-step" style="display: none;">
+                <h2>Safety Check 3</h2>
+                <p>Is the environment safe for monitoring (e.g., dry, well-lit, and free of obstructions)?</p>
+                <button onclick="handleSafetyResponse(4, true)">Yes</button>
+                <button onclick="handleSafetyResponse(4, false)">No</button>
+            </div>
+
+            <div id="safety-step-5" class="safety-step" style="display: none;">
+                <h2>Safety Check 4</h2>
+                <p>Have all electrical connections been double-checked for security and stability?</p>
+                <button onclick="handleSafetyResponse(5, true)">Yes</button>
+                <button onclick="handleSafetyResponse(5, false)">No</button>
+            </div>
+
+            <div id="safety-step-6" class="safety-step" style="display: none;">
+                <h2>Safety Check 5</h2>
+                <p>Are you monitoring from a safe distance with no direct contact with live components?</p>
+                <button onclick="handleSafetyResponse(6, true)">Yes</button>
+                <button onclick="handleSafetyResponse(6, false)">No</button>
+            </div>
+        </div>
+
+        <!-- Safety Step 7: Proceed to Monitoring -->
+        <div id="safety-step-7" class="safety-step" style="display: none;">
+            <h2>Proceed to Real-Time Monitoring</h2>
+            <p>All safety checks passed. You may now proceed to the Real-Time Monitoring page.</p>
+            <button onclick="showMonitoringDashboard()">Proceed</button>
+        </div>
+
+        <!-- Safety Check Failed -->
+        <div id="safety-stop" class="safety-step" style="display: none;">
+            <h2>Safety Check Failed</h2>
+            <p>Please address the issue before proceeding.</p>
+            <img src="{{ url_for('static', filename='images/hazard.gif') }}" alt="Electrical Hazard" class="hazard-animation">
+            <div class="stop-buttons">
+                <button onclick="retrySafetyChecks()">Retry Safety Check</button>
+                <button onclick="exitSafetyChecks()">Exit</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monitoring Dashboard Section -->
+    <div id="monitoring-dashboard" style="display: none;">
+        <!-- Metrics Display -->
+        <div class="metrics">
+            <div class="metric-group">
+                <h3>Active Power (W)</h3>
+                <p>CT1: <span id="p1">0 W</span></p>
+                <p>CT2: <span id="p2">0 W</span></p>
+                <p>CT3: <span id="p3">0 W</span></p>
+            </div>
+            <div class="metric-group">
+                <h3>Current RMS (A)</h3>
+                <p>CT1: <span id="irms1">0 A</span></p>
+                <p>CT2: <span id="irms2">0 A</span></p>
+                <p>CT3: <span id="irms3">0 A</span></p>
+            </div>
+            <div class="metric-group">
+                <h3>Voltage RMS (V)</h3>
+                <p>CT1: <span id="vrms1">0 V</span></p>
+                <p>CT2: <span id="vrms2">0 V</span></p>
+                <p>CT3: <span id="vrms3">0 V</span></p>
+            </div>
+        </div>
+        
+        <!-- Connection Status Indicators -->
+        <div class="status-indicators">
+            <div class="status">
+                <h4>CT1 Status:</h4>
+                <p id="ct1-status" class="status-text disconnected">Disconnected</p>
+            </div>
+            <div class="status">
+                <h4>CT2 Status:</h4>
+                <p id="ct2-status" class="status-text disconnected">Disconnected</p>
+            </div>
+            <div class="status">
+                <h4>CT3 Status:</h4>
+                <p id="ct3-status" class="status-text disconnected">Disconnected</p>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="charts">
+            <!-- Active Power Charts -->
+            <div class="chart-container">
+                <h2>Active Power - CT Sensors</h2>
+                <canvas id="powerChart" width="800" height="500"></canvas>
+            </div>
+            
+            <!-- Current RMS Charts -->
+            <div class="chart-container">
+                <h2>Current RMS - CT Sensors</h2>
+                <canvas id="currentChart" width="800" height="500"></canvas>
+            </div>
+            
+            <!-- Voltage RMS Charts -->
+            <div class="chart-container">
+                <h2>Voltage RMS - CT Sensors</h2>
+                <canvas id="voltageChart" width="800" height="500"></canvas>
+            </div>
+            
+            <!-- Total Energy Cost Pie Chart -->
+            <div class="chart-container">
+                <h2>Total Energy Cost</h2>
+                <canvas id="costPieChart" width="600" height="600"></canvas>
+                <div id="total-cost" class="total-cost">Total Cost: R0.00</div>
+            </div>
+        </div>
+        
+        <!-- Cost Calculation Section -->
+        <div class="cost-section">
+            <h2>Cost Calculation</h2>
+            <p>This section calculates the cost of running your appliances based on the duration they are switched on.</p>
+            <canvas id="energyCostChart" width="600" height="400"></canvas>
+        </div>
+        
+        <!-- Alerts and Notifications Section -->
+        <div class="alerts-section">
+            <h2>Alerts & Notifications</h2>
+            <div id="alerts-container">
+                <!-- Alerts will be dynamically inserted here -->
+            </div>
+        </div>
+        
+        <!-- Buttons -->
+        <button id="downloadBtn">Download History</button>
+    </div>
+
+    <!-- Safety Check JavaScript -->
+    <script>
+        let failedStep = null; // Variable to store the failed step
+
+        function startSafetyChecks() {
+            document.getElementById('safety-step-1').style.display = 'none';
+            document.getElementById('safety-steps').style.display = 'block';
+            document.getElementById('safety-step-2').style.display = 'block';
+        }
+
+        function handleSafetyResponse(step, isYes) {
+            if (isYes) {
+                const nextStep = step + 1;
+                if (nextStep <=6) {
+                    document.getElementById(`safety-step-${step}`).style.display = 'none';
+                    document.getElementById(`safety-step-${nextStep}`).style.display = 'block';
+                } else if (nextStep ===7) {
+                    document.getElementById(`safety-step-${step}`).style.display = 'none';
+                    document.getElementById('safety-step-7').style.display = 'block';
+                }
+            } else {
+                // Store the failed step
+                failedStep = step;
+                // Show the stop message with hazard animation
+                document.getElementById(`safety-step-${step}`).style.display = 'none';
+                document.getElementById('safety-stop').style.display = 'block';
+            }
+        }
+
+        function showMonitoringDashboard() {
+            document.getElementById('safety-check-container').style.display = 'none';
+            document.getElementById('monitoring-dashboard').style.display = 'block';
+        }
+
+        function retrySafetyChecks() {
+            if (failedStep) {
+                // Hide safety-stop and show the failed step again
+                document.getElementById('safety-stop').style.display = 'none';
+                document.getElementById(`safety-step-${failedStep}`).style.display = 'block';
+                failedStep = null; // Reset the failed step after retrying
+            } else {
+                // Fallback in case failedStep is not set
+                alert('An unexpected error occurred. Restarting safety checks.');
+                window.location.reload();
+            }
+        }
+
+        function exitSafetyChecks() {
+            // Optionally, redirect to a goodbye page or simply hide everything
+            alert('Please address the safety issues before accessing the monitoring dashboard.');
+            // Optionally, reload the page
+            window.location.reload();
+        }
+    </script>
+
+    <!-- Main Monitoring JavaScript -->
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+</html>

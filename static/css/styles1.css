@@ -15,23 +15,6 @@ h1 {
     margin-bottom: 30px;
 }
 
-/* Add styles for Detected Appliance */
-.metric-group h3 {
-    color: #00ffea; /* Electric Blue */
-    margin-bottom: 15px;
-}
-
-.metric-group p {
-    margin: 8px 0;
-    font-size: 1em;
-}
-
-.metric-group #prediction_ct1,
-.metric-group #prediction_ct2,
-.metric-group #prediction_ct3 {
-    font-weight: bold;
-}
-
 /* Safety Check Section */
 .safety-step {
     max-width: 600px;

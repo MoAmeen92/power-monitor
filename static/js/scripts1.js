@@ -16,11 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const alertsContainer = document.getElementById('alerts-container');
 
-    // Prediction Elements
-    const predictionCT1Elem = document.getElementById('prediction_ct1');
-    const predictionCT2Elem = document.getElementById('prediction_ct2');
-    const predictionCT3Elem = document.getElementById('prediction_ct3');
-
     // Define Electric Colors for Vibrant Charts
     const colors = {
         p1: 'rgba(0, 255, 255, 1)',      // Cyan
@@ -492,9 +487,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateStatus('ct2', data.vrms2, data.p2);
         updateStatus('ct3', data.vrms3, data.p3);
 
-        // Update Predictions
-        updatePredictions(data);
-
         // Calculate time elapsed since last update
         const currentTime = Date.now();
         const timeElapsed = (currentTime - lastUpdateTime) / 3600000; // in hours
@@ -576,23 +568,6 @@ document.addEventListener("DOMContentLoaded", () => {
             statusElem.classList.add('connected');
             statusElem.classList.remove('disconnected');
         }
-    }
-
-    // Function to Update Predictions
-    function updatePredictions(data) {
-        // For each CT sensor, check if connected
-        // If connected, show prediction; else, show "No Appliance Connected"
-        ['ct1', 'ct2', 'ct3'].forEach(ct => {
-            const status = document.getElementById(`${ct}-status`).textContent;
-            const prediction = data[`prediction_ct${ct.slice(-1)}`];
-            const predictionElem = document.getElementById(`prediction_ct${ct.slice(-1)}`);
-
-            if (status === 'Connected') {
-                predictionElem.textContent = prediction || 'Unknown';
-            } else {
-                predictionElem.textContent = 'No Appliance Connected';
-            }
-        });
     }
 
     // Function to Calculate Cost Based on Tariff
@@ -720,7 +695,6 @@ document.addEventListener("DOMContentLoaded", () => {
             alertDiv.classList.add('warning');
         }
 
-        // Use template literals with backticks
         alertDiv.innerHTML = `
             <span>${message}</span>
             <button class="close-btn">&times;</button>
